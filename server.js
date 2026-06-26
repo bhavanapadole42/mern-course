@@ -1,60 +1,85 @@
-// Load the Express package
+// ─── server.js (Full Working Version) ─────────────────────────
+
 const express = require('express');
+const mongoose = require('mongoose');
+const path = require('path');
 
-// Create an Express application
 const app = express();
-
-// Define the port number
 const PORT = 3000;
 
-// Home Route
-app.get('/', function(req, res) {
-    res.send('<h1>Updated! nodemon Works!</h1>');
+// ─── MIDDLEWARE ───────────────────────────────────────────────
+
+// Serve static files from public folder
+app.use(express.static('public'));
+
+// Parse form data
+app.use(express.urlencoded({ extended: true }));
+
+// ─── MONGODB CONNECTION ───────────────────────────────────────
+
+// ✅ IMPORTANT: Replace username/password if needed
+const MONGO_URI =
+"mongodb://bhavanapadole42_db_user:tanu12345@ac-otvz6ju-shard-00-00.asmssjd.mongodb.net:27017,ac-otvz6ju-shard-00-01.asmssjd.mongodb.net:27017,ac-otvz6ju-shard-00-02.asmssjd.mongodb.net:27017/?ssl=true&replicaSet=atlas-tnvtsf-shard-0&authSource=admin&appName=Cluster0";
+mongoose.connect(MONGO_URI)
+  .then(() => {
+    console.log('✅ Connected to MongoDB successfully!');
+  })
+  .catch((error) => {
+    console.log('❌ MongoDB connection failed:', error.message);
+    process.exit(1);
+  });
+
+// ─── SCHEMA & MODEL ──────────────────────────────────────────
+
+const studentSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  surname: { type: String, required: true }
 });
 
-// About Route
-app.get('/about', function(req, res) {
-    res.send('<h1>About Page</h1><p>This server is built with Node.js and Express.js</p>');
-});
+const Student = mongoose.model('Student', studentSchema);
 
-// Students Route
-app.get('/students', function(req, res) {
-    res.send('<h1>Students</h1><p>This page will show student data later!</p>');
-});
+// ─── ROUTES ──────────────────────────────────────────────────
 
-// Start Server
-app.listen(PORT, function() {
-    console.log('Server is running at http://localhost:' + PORT);
-    console.log('Press Ctrl + C to stop the server');
-});
-// Route 4: Contact Page
-app.get('/contact', function(req, res) {
+// POST route to handle form submission
+app.post('/submit', async (req, res) => {
+  try {
+    const studentName = req.body.name;
+    const studentSurname = req.body.surname;
+
+    console.log('New student received:');
+    console.log('Name:', studentName);
+    console.log('Surname:', studentSurname);
+
+    const newStudent = new Student({
+      name: studentName,
+      surname: studentSurname
+    });
+
+    await newStudent.save();
+
+    console.log('✅ Student saved to MongoDB!');
+
     res.send(`
-        <h1>Contact Us</h1>
-        <p>Name: Bhavana S. Padole</p>
-        <p>Email: bhavanapadole@gmail.com</p>
-        <p>College: Government Polytechnic Bramhpuri</p>
+      <html>
+        <body style="font-family: Arial;">
+          <h1>✅ Registration Successful!</h1>
+          <p><b>Name:</b> ${studentName}</p>
+          <p><b>Surname:</b> ${studentSurname}</p>
+          <p>Your details have been saved to the database.</p>
+          <a href="/form.html">⬅ Go Back to Form</a>
+        </body>
+      </html>
     `);
+
+  } catch (error) {
+    console.log('❌ Error:', error.message);
+    res.send('Something went wrong: ' + error.message);
+  }
 });
 
-// Route 5: Courses Page
-app.get('/courses', function(req, res) {
-    res.send(`
-        <h1>My Subjects</h1>
-        <ul>
-            <li>Data Structures</li>
-            <li>Database Management System</li>
-            <li>Computer Networks</li>
-            <li>Operating Systems</li>
-        </ul>
-    `);
-});
+// ─── START SERVER ────────────────────────────────────────────
 
-// Route 6: Dynamic Welcome Route
-app.get('/welcome/:name', function(req, res) {
-
-    let name = req.params.name;
-
-    res.send('<h1>Welcome, ' + name + '!</h1>');
-
+app.listen(PORT, () => {
+  console.log(`Server is running at http://localhost:${PORT}`);
+  console.log(`Open http://localhost:${PORT}/form.html in your browser`);
 });
